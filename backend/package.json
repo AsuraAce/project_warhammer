@@ -8,6 +8,7 @@
     "start": "npm run build && cross-env NODE_ENV=production node dist/server.js",
     "dev": "cross-env NODE_ENV=development ts-node-dev --respawn --transpile-only server.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "seed": "cross-env NODE_ENV=development ts-node utils/seeder.ts",
     "test-server": "ts-node-dev --respawn --transpile-only test-server.ts"
   },
   "keywords": [],

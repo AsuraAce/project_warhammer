@@ -13,6 +13,7 @@ dotenv.config({ path: path.resolve(__dirname, envFile) });
 // Route imports
 import authRoutes from './routes/authRoutes';
 import characterRoutes from './routes/characterRoutes';
+import dataRoutes from './routes/dataRoutes';
 import gameRoutes from './routes/gameRoutes';
 import { initializeWebSocket } from './services/webSocketService';
 
@@ -40,6 +41,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/characters', characterRoutes);
+app.use('/api/data', dataRoutes);
 app.use('/api/game', gameRoutes);
 
 // Health check route
