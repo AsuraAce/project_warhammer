@@ -9,6 +9,7 @@ import Trapping from '../models/trappingModel';
 import Spell from '../models/spellModel';
 import Talent from '../models/talentModel';
 import Skill from '../models/skillModel';
+import Reference from '../models/referenceModel';
 
 dotenv.config({ path: path.resolve(__dirname, '../.env.development') });
 
@@ -27,6 +28,7 @@ const importData = async () => {
     await Spell.deleteMany({});
     await Talent.deleteMany({});
     await Skill.deleteMany({});
+    await Reference.deleteMany({});
     console.log('All collections cleared.');
 
     const extractData = (filePath: string, dataKey: string) => {
@@ -131,6 +133,39 @@ const importData = async () => {
         const createdSkills = await Skill.insertMany(skillsToInsert);
         console.log(`${createdSkills.length} skills imported!`);
     }
+
+    // --- Import Reference Materials ---
+    const importReferenceData = async (fileName: string, sourceName: string, idPrefix: string) => {
+      const filePath = path.resolve(__dirname, `../../data/${fileName}`);
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
+      const jsonData = JSON.parse(fileContent);
+      const itemsToInsert = (Object.values(jsonData.entries) as any[])
+        .map(entry => {
+          let content;
+          try {
+            content = JSON.parse(entry.content);
+          } catch (e) {
+            content = entry.content;
+          }
+          return {
+            id: `${idPrefix}-${entry.uid.toString()}`,
+            title: entry.comment || 'Untitled',
+            content: content,
+            source: sourceName,
+          };
+        });
+
+      console.log(`Found ${itemsToInsert.length} items from ${sourceName}.`);
+      if (itemsToInsert.length > 0) {
+        const createdItems = await Reference.insertMany(itemsToInsert);
+        console.log(`${createdItems.length} items from ${sourceName} imported!`);
+      }
+    };
+
+    await importReferenceData('Warhammer (WFRP 4e) - 01. Reference Material.json', 'Reference Material', 'ref');
+    await importReferenceData('Warhammer (WFRP 4e) - 02. Reference Guidelines.json', 'Reference Guidelines', 'guide');
+    await importReferenceData("Warhammer (WFRP 4e) - 03. SOP's (New).json", 'SOPs', 'sop');
+    await importReferenceData('Warhammer (WFRP 4e) - 04. Cheat Sheets.json', 'Cheat Sheets', 'cheat');
 
     console.log('Data Import Complete!');
   } catch (error) {
