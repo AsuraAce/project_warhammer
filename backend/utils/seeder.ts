@@ -61,14 +61,17 @@ const importData = async () => {
     const careersFile = fs.readFileSync(careersPath, 'utf-8');
     const careersData = JSON.parse(careersFile);
     const careersToInsert = Object.values(careersData.entries).map((entry: any) => {
-        try {
-            const content = JSON.parse(entry.content);
-            const careerKey = Object.keys(content)[0];
-            if(content[careerKey] && content[careerKey].title) return content[careerKey];
-            return null;
-        } catch (e) {
-            return null;
+      try {
+        const content = JSON.parse(entry.content);
+        // Find the key that contains the career data, which is an object with a 'title' property
+        const careerKey = Object.keys(content).find(key => content[key] && content[key].title);
+        if (careerKey) {
+          return content[careerKey];
         }
+        return null;
+      } catch (e) {
+        return null;
+      }
     }).filter(Boolean);
     console.log(`Found ${careersToInsert.length} careers to import.`);
     if (careersToInsert.length > 0) {
