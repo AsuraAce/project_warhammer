@@ -1,12 +1,13 @@
-const express = require('express');
-const router = express.Router();
-const User = require('../models/userModel');
-const Character = require('../models/characterModel');
+import { Router, Request, Response } from 'express';
+import User from '../models/userModel';
+import Character from '../models/characterModel';
+
+const router = Router();
 
 // @route   POST /api/characters/start-new
 // @desc    Create a new dummy user and character to start a game
 // @access  Public (for now)
-router.post('/start-new', async (req, res) => {
+router.post('/start-new', async (req: Request, res: Response) => {
   try {
     // Create a dummy user
     const newUser = new User({
@@ -25,10 +26,10 @@ router.post('/start-new', async (req, res) => {
 
     res.json(newCharacter);
 
-  } catch (err) {
+  } catch (err: any) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
 });
 
-module.exports = router;
+export default router;

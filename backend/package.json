@@ -2,10 +2,11 @@
   "name": "wfrp-llm-game-backend",
   "version": "1.0.0",
   "description": "Backend for the WFRP 4e inspired LLM-driven game.",
-  "main": "server.js",
+  "main": "dist/server.js",
   "scripts": {
-    "start": "cross-env NODE_ENV=production node server.js",
-    "dev": "cross-env NODE_ENV=development nodemon server.js",
+    "build": "tsc",
+    "start": "npm run build && cross-env NODE_ENV=production node dist/server.js",
+    "dev": "cross-env NODE_ENV=development nodemon server.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -22,7 +23,14 @@
     "openai": "^3.2.1"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.0.14",
     "cross-env": "^7.0.3",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
   }
 }

@@ -1,16 +1,21 @@
-const express = require('express');
-const router = express.Router();
-const Game = require('../models/gameModel');
-const Character = require('../models/characterModel');
-const { generateStory, processAction } = require('../services/llmService');
+import { Router, Request, Response } from 'express';
+import Game, { ILogEntry } from '../models/gameModel';
+import Character from '../models/characterModel';
+import { generateStory, processAction } from '../services/llmService';
+
+const router = Router();
+
+// Interface for Character info passed to the LLM service
+interface CharacterInfo {
+  name: string;
+  career: string;
+}
 
 // @route   POST /api/game/start
 // @desc    Start a new game
 // @access  Private
-router.post('/start', async (req, res) => {
+router.post('/start', async (req: Request, res: Response) => {
   try {
-    // For now, we'll assume a character is created and its ID is passed.
-    // In the future, this would be linked to the authenticated user.
     const { characterId } = req.body;
 
     if (!characterId) {
@@ -35,7 +40,7 @@ router.post('/start', async (req, res) => {
     await newGame.save();
     res.json(newGame);
 
-  } catch (err) {
+  } catch (err: any) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
@@ -44,7 +49,7 @@ router.post('/start', async (req, res) => {
 // @route   POST /api/game/:id/action
 // @desc    Process a player action
 // @access  Private
-router.post('/:id/action', async (req, res) => {
+router.post('/:id/action', async (req: Request, res: Response) => {
   try {
     const { action } = req.body;
     const game = await Game.findById(req.params.id).populate('character');
@@ -60,20 +65,20 @@ router.post('/:id/action', async (req, res) => {
       return res.status(404).json({ msg: 'Character data not found for this game.' });
     }
 
-    const context = game.log.map(entry => entry.content).join('\n');
-    const characterInfo = { name: character.name, career: character.career };
+    const context = game.log.map((entry: ILogEntry) => entry.content).join('\n');
+    const characterInfo: CharacterInfo = { name: character.name, career: character.career };
 
     // Add the player's action to the log
-    game.log.push({ type: 'player', content: action });
+    game.log.push({ type: 'player', content: action, timestamp: new Date() });
 
     const gmResponse = await processAction(context, characterInfo, action);
 
     // Add the GM's response to the log
-    game.log.push({ type: 'system', content: gmResponse });
+    game.log.push({ type: 'system', content: gmResponse, timestamp: new Date() });
     await game.save();
 
     res.json(game);
-  } catch (err) {
+  } catch (err: any) {
     console.error('--- DETAILED ERROR ---');
     console.error(`Timestamp: ${new Date().toISOString()}`);
     console.error(err.stack);
@@ -82,4 +87,4 @@ router.post('/:id/action', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
