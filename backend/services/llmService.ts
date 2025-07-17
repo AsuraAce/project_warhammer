@@ -7,6 +7,8 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 interface CharacterInfo {
   name: string;
   career: string;
+  stats: { [key: string]: number };
+  skills: { name: string; value: number }[];
 }
 
 // A basic function to generate story content
@@ -29,11 +31,39 @@ export const generateStory = async (prompt: string): Promise<string> => {
 
 // A function to process a player's action
 export const processAction = async (context: string, characterInfo: CharacterInfo, action: string): Promise<string> => {
-  const prompt = `You are the Game Master for a Warhammer Fantasy Roleplay game. The current situation is: ${context}. The character, ${characterInfo.name} the ${characterInfo.career}, decides to: "${action}".
+  const characterSheet = `
+    Name: ${characterInfo.name}
+    Career: ${characterInfo.career}
+    Stats: ${JSON.stringify(characterInfo.stats)}
+    Skills: ${JSON.stringify(characterInfo.skills.map(s => ({ [s.name]: s.value })))}`
 
-Determine if this action requires a skill check. 
-- If NO skill check is needed, describe what happens next in a narrative paragraph.
-- If YES, a skill check is required, respond with ONLY a JSON object in the format: {"skill": "[Skill Name]", "modifier": [modifier value as a number]}. Do not include any other text or explanation. For example: {"skill": "Stealth", "modifier": -10}`;
+  const prompt = `You are the Game Master for a Warhammer Fantasy Roleplay game, known for its gritty and perilous world.
+
+**Current Situation:**
+${context}
+
+**Player Character:**
+${characterSheet}
+
+**Player's Action:**
+"${action}"
+
+**Your Task:**
+Analyze the player's action and determine if a skill check is required based on their character sheet and the situation.
+
+- **If a skill check is REQUIRED:**
+  You MUST respond with ONLY a JSON object. Do not provide any other text, explanation, or markdown formatting.
+  The JSON object must have this exact structure:
+  {
+    "skill": "[The name of the relevant skill or statistic from the character sheet]",
+    "modifier": [A number representing the difficulty modifier (e.g., +20 for very easy, 0 for standard, -30 for very hard)]
+  }
+  Example: The player wants to sneak past a guard. You respond with: {"skill": "Stealth", "modifier": 0}
+
+- **If a skill check is NOT required:**
+  Describe the outcome of the action directly in a single, engaging narrative paragraph. Do not mention dice rolls or game mechanics.
+
+Now, process the action.`;
 
   return await generateStory(prompt);
 };

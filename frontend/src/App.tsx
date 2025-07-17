@@ -12,11 +12,57 @@ function App() {
   const [log, setLog] = useState<ILogEntry[]>([]);
   const [playerInput, setPlayerInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isGmThinking, setIsGmThinking] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const ws = useRef<WebSocket | null>(null);
 
+  // Effect for scrolling the log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [log]);
+
+  // Effect for WebSocket connection management
+  useEffect(() => {
+    if (!gameId) return;
+
+    // Create WebSocket connection
+    ws.current = new WebSocket('ws://127.0.0.1:5001');
+
+    ws.current.onopen = () => {
+      console.log('WebSocket connection opened');
+      // Register this client with the gameId
+      const registerMessage = { type: 'register', gameId };
+      ws.current?.send(JSON.stringify(registerMessage));
+      setIsLoading(false); // No longer loading the game, now waiting for actions
+    };
+
+    ws.current.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'log' && message.payload) {
+        setLog(prevLog => [...prevLog, message.payload]);
+        setIsGmThinking(false); // GM has responded
+      } else if (message.type === 'system') {
+        console.log('System message:', message.content);
+      } else if (message.type === 'error') {
+        console.error('WebSocket Error:', message.content);
+      }
+    };
+
+    ws.current.onclose = () => {
+      console.log('WebSocket connection closed');
+      setLog(prevLog => [...prevLog, { type: 'system', content: 'Connection to the server has been lost.', timestamp: new Date().toISOString() }]);
+    };
+
+    ws.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setLog(prevLog => [...prevLog, { type: 'system', content: 'A connection error occurred.', timestamp: new Date().toISOString() }]);
+    };
+
+    // Cleanup on component unmount or gameId change
+    return () => {
+      ws.current?.close();
+    };
+  }, [gameId]);
 
   const handleStartGame = async () => {
     setIsLoading(true);
@@ -24,68 +70,46 @@ function App() {
       const response = await fetch('http://127.0.0.1:5001/api/game/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // This characterId is hardcoded for now. We will replace this with a character selection screen later.
-          characterId: '6697d8f5e3053790532e4804' 
-        })
+        body: JSON.stringify({ characterId: '6697d8f5e3053790532e4804' })
       });
-      if (!response.ok) {
-        throw new Error('Failed to start game');
-      }
+      if (!response.ok) throw new Error('Failed to start game');
       const data = await response.json();
-      setGameId(data._id);
       setLog(data.log);
+      setGameId(data._id); // This will trigger the useEffect to connect WebSocket
     } catch (error: any) {
-      // --- Enhanced Error Logging ---
-      console.error('--- START GAME CATCH BLOCK ---');
-      console.error('typeof error:', typeof error);
-      console.error('error:', error);
-      if (error) {
-        console.error('error.message:', error.message);
-        console.error('error.name:', error.name);
-        console.error('error.stack:', error.stack);
-      }
-      // --- End Enhanced Error Logging ---
-
       let message = 'Error: Could not start a new game.';
       if (error instanceof Error) message += ' ' + error.message;
-      else if (typeof error === 'object' && error !== null && 'message' in error) message += ' ' + (error as any).message;
-      else message += ' ' + JSON.stringify(error);
-      
       setLog([{ type: 'system', content: message + ' Is the backend server running?', timestamp: new Date().toISOString() }]);
-    } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSendAction = async (e: React.FormEvent) => {
+  const handleSendAction = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!playerInput.trim() || !gameId || isLoading) return;
+    if (!playerInput.trim() || !ws.current || ws.current.readyState !== WebSocket.OPEN) return;
 
-    setIsLoading(true);
+    const action = playerInput;
+    
+    // Optimistically add player action to the log
+    const playerEntry: ILogEntry = {
+      type: 'player',
+      content: action,
+      timestamp: new Date().toISOString(),
+    };
+    setLog(prevLog => [...prevLog, playerEntry]);
+    setPlayerInput('');
+    setIsGmThinking(true);
+
+    // Send action via WebSocket
     const currentInput = playerInput;
     setPlayerInput('');
 
-    try {
-      const response = await fetch(`http://127.0.0.1:5001/api/game/${gameId}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: currentInput })
-      });
-      if (!response.ok) {
-        throw new Error('Failed to send action');
-      }
-      const data = await response.json();
-      setLog(data.log);
-    } catch (error: any) {
-      let message = 'Error: Could not send action.';
-      if (error instanceof Error) message += ' ' + error.message;
-      else if (typeof error === 'object' && error !== null && 'message' in error) message += ' ' + (error as any).message;
-      else message += ' ' + JSON.stringify(error);
-      console.error('Send Action Error:', error);
-      setLog(prevLog => [...prevLog, { type: 'system', content: message + ' Please try again.', timestamp: new Date().toISOString() }]);
-    } finally {
-      setIsLoading(false);
+    if (currentInput.trim().startsWith('/r ')) {
+      const payload = { type: 'manual_roll', payload: { command: currentInput.trim() } };
+      ws.current?.send(JSON.stringify(payload));
+    } else {
+      const payload = { type: 'action', payload: { action: currentInput } };
+      ws.current?.send(JSON.stringify(payload));
     }
   };
 
@@ -138,8 +162,8 @@ function App() {
                   value={playerInput}
                   onChange={(e) => setPlayerInput(e.target.value)}
                   className="w-full p-2 bg-gray-700 border border-gray-600 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
-                  placeholder={isLoading ? 'GM is thinking...' : 'What do you do?'}
-                  disabled={isLoading}
+                  placeholder={isGmThinking ? 'GM is thinking...' : 'What do you do?'}
+                  disabled={isGmThinking}
                 />
               </form>
             </div>

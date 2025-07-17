@@ -38,10 +38,7 @@ router.post('/start', async (req: Request, res: Response) => {
     console.log(`[GAME START] Using mock character: ${character.name}`);
     // --- END TEMPORARY FIX ---
 
-    const initialPrompt = `You are a Game Master for a Warhammer Fantasy Roleplay game. Your player is ${character.name}, a ${character.career}. The adventure begins in a dimly lit tavern in Ubersreik. Describe the scene.`;
-    console.log('[GAME START] Generating initial story with LLM...');
-    const initialNarrative = await generateStory(initialPrompt);
-    console.log('[GAME START] Initial story generated successfully.');
+    const initialNarrative = `The air in the Drunken Mug tavern is thick with the smell of stale ale, cheap pipe smoke, and unwashed bodies. A low fire sputters in the hearth, casting long, dancing shadows across the room. You sit alone at a rickety table, nursing a lukewarm drink as you watch the tavern's other patrons—a motley collection of weathered soldiers, shifty-eyed locals, and a boisterous group of river-traders. The world outside the tavern's grimy windows is just as grim, but for now, this small pocket of flickering light offers a brief respite from the ever-present dangers of Ubersreik. What do you do?`;
 
     const newGameData = {
       character: characterId,
@@ -93,62 +90,6 @@ const getCharacterStat = (character: ICharacter, statName: string): number => {
   return 30; // Default fallback
 };
 
-// @route   POST /api/game/:id/action
-// @desc    Process a player action
-// @access  Private
-router.post('/:id/action', async (req: Request, res: Response) => {
-  try {
-    const { action } = req.body;
-    const game = await Game.findById(req.params.id);
-    if (!game) return res.status(404).json({ msg: 'Game not found' });
 
-    // --- TEMPORARY FIX: Bypass database lookup and use a mock character ---
-    console.log(`[GAME ACTION] Bypassing database lookup for character ID: ${game.character}`);
-    const character = {
-      _id: new Types.ObjectId(game.character.toString()),
-      name: 'Grodni Ironhand',
-      career: 'Dwarf Ironbreaker',
-      stats: { WS: 45, BS: 30, S: 40, T: 50, I: 25, Ag: 20, Dex: 35, Int: 20, WP: 40, Fel: 15 },
-      skills: [{ name: 'Melee (Basic)', value: 55 }, { name: 'Intimidate', value: 50 }],
-      userId: new Types.ObjectId(), // Fake user ID for now
-    } as ICharacter;
-    console.log(`[GAME ACTION] Using mock character: ${character.name}`);
-    // --- END TEMPORARY FIX ---
-
-    const context = game.log.map((entry: ILogEntry) => entry.content).join('\n');
-    const characterInfo: CharacterInfo = { name: character.name, career: character.career };
-
-    game.log.push({ type: 'player', content: action, timestamp: new Date() });
-
-    const llmResponse = await processAction(context, characterInfo, action);
-    const skillCheck = extractJson(llmResponse);
-
-    if (skillCheck && skillCheck.skill) {
-      const targetStat = getCharacterStat(character, skillCheck.skill);
-      const targetNumber = targetStat + (skillCheck.modifier || 0);
-      const roll = rollD100();
-      const success = roll <= targetNumber;
-      const sl = Math.floor(targetNumber / 10) - Math.floor(roll / 10);
-
-      game.log.push({ type: 'system', content: `A ${skillCheck.skill} check is required.`, timestamp: new Date() });
-      game.log.push({ type: 'roll', content: `${character.name} rolls against a target of ${targetNumber} for ${skillCheck.skill}. Roll: ${roll}.`, timestamp: new Date() });
-      game.log.push({ type: 'system', content: `Success Level: ${sl}. ${success ? 'Success!' : 'Failure.'}`, timestamp: new Date() });
-
-      const outcomeNarrative = await generateSkillCheckOutcome(characterInfo, skillCheck.skill, success, sl);
-      game.log.push({ type: 'narrative', content: outcomeNarrative, timestamp: new Date() });
-    } else {
-      game.log.push({ type: 'narrative', content: llmResponse, timestamp: new Date() });
-    }
-
-    await game.save();
-    res.json(game);
-  } catch (err: any) {
-    console.error('--- DETAILED ERROR ---');
-    console.error(`Timestamp: ${new Date().toISOString()}`);
-    console.error(err.stack);
-    console.error('--- END DETAILED ERROR ---');
-    res.status(500).send('Server Error');
-  }
-});
 
 export default router;

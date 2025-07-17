@@ -1,6 +1,8 @@
 import path from 'path';
 import dotenv from 'dotenv';
 import express, { Express, Request, Response } from 'express';
+import http from 'http';
+import { WebSocketServer } from 'ws';
 import cors from 'cors';
 import mongoose from 'mongoose';
 
@@ -12,6 +14,7 @@ dotenv.config({ path: path.resolve(__dirname, envFile) });
 import authRoutes from './routes/authRoutes';
 import characterRoutes from './routes/characterRoutes';
 import gameRoutes from './routes/gameRoutes';
+import { initializeWebSocket } from './services/webSocketService';
 
 const app: Express = express();
 
@@ -63,8 +66,14 @@ const startServer = async () => {
     await mongoose.connect(MONGO_URI);
     console.log('MongoDB connected successfully.');
 
-    app.listen(Number(PORT), '0.0.0.0', () => {
+    const server = http.createServer(app);
+    const wss = new WebSocketServer({ server });
+
+    initializeWebSocket(wss);
+
+    server.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`Server is running on http://127.0.0.1:${PORT}`);
+      console.log(`WebSocket server is running on ws://127.0.0.1:${PORT}`);
     }).on('error', (err: any) => {
       console.error('SERVER STARTUP ERROR:', err);
       process.exit(1);
