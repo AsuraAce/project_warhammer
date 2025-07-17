@@ -1,0 +1,119 @@
+Application Specification: WFRP 4e Inspired LLM-Driven Game
+1. Overview
+This specification outlines the requirements for a web-based game that recreates a WFRP 4th edition-inspired experience using a large language model (LLM) as the game master (GM). The game will include:
+
+Narrative/Adventure Mode with skill checks and dice rolls.
+Turn-Based Combat with AI-controlled NPCs and creatures.
+Downtime Phase for event-driven or role-playing activities.
+
+The game will leverage provided JSON data (game master cheat sheet, ruleset guidelines, reference material, and lore) and be developed using vibe coding tools (Cursor or Windsurf) for rapid iteration. The goal is to create a new project from scratch, similar to Aidungeon or Fables.gg, with a focus on WFRP 4e mechanics and lore.
+
+2. Features
+2.1 Narrative/Adventure Mode
+
+Story Generation: The LLM generates dynamic story content based on player choices, actions, and WFRP lore.
+Skill Checks: Players perform actions requiring skill checks (e.g., climbing, persuasion). Virtual dice rolls (d100-based, per WFRP rules) are simulated programmatically, and the LLM determines outcomes using character stats and difficulty levels.
+Choice Consequences: Player decisions shape the story, NPC reactions, and world state.
+Dice Rolls: Simulated rolls are integrated into the game logic, with results interpreted by the LLM per WFRP 4e rules.
+
+2.2 Turn-Based Combat
+
+Initiative and Turns: The LLM calculates initiative (using WFRP rules) and manages turn order for players, party members, NPCs, and creatures.
+Action Resolution: Players and NPCs take actions (e.g., attack, dodge, cast spells), resolved via dice rolls and stats, following WFRP 4e combat mechanics.
+Party Control: Players control their character and can optionally manage party members’ turns, or let the LLM handle them.
+NPC and Creature Management: The LLM controls NPCs and creatures, making tactical decisions based on their stats and the combat context.
+
+2.3 Downtime Phase
+
+Event Generation: The LLM creates random events or scenarios (e.g., crafting, resting, social encounters) during downtime.
+Role-Playing Opportunities: Players can engage in role-play to develop their character, manage resources, or interact with the world.
+Progression Impact: Downtime activities can grant experience points (XP), improve skills, or advance the story.
+
+2.4 Character Creation and Progression
+
+Character Creation: Players build characters using WFRP 4e rules, selecting careers, skills, talents, and attributes from provided reference data.
+Progression System: Characters earn XP from adventures and combat, spending it to enhance skills, acquire talents, or advance careers.
+LLM Guidance: The LLM assists with character creation (e.g., suggesting options) and progression recommendations based on gameplay.
+
+
+3. Technology Stack
+
+Frontend: React.js for a dynamic, responsive user interface, hosted via CDN (e.g., cdn.jsdelivr.net/npm/react).
+Backend: Node.js with Express.js for request handling, game logic, and LLM integration.
+Database: MongoDB for storing user profiles, game states, and JSON data.
+LLM Integration: OpenAI GPT API (or similar) for narrative generation, NPC control, and game decisions.
+Development Tools: Vibe coding with Cursor or Windsurf for rapid prototyping and iteration.
+Styling: Tailwind CSS (via CDN) for efficient, modern UI design.
+
+
+4. Architecture
+
+Client-Server Model:
+Frontend sends player inputs (e.g., actions, dialogue choices) to the backend via HTTP requests.
+Backend processes inputs, queries the LLM, updates the game state, and returns responses to the frontend.
+
+
+Game State Management:
+Stored in MongoDB, including character stats, inventory, location, and story progress.
+Updated in real-time based on player actions and LLM outcomes.
+
+
+Data Integration:
+JSON data (rules, reference material, lore) is imported into MongoDB or loaded into memory on server start.
+Used by the LLM and game logic to maintain WFRP 4e fidelity.
+
+
+LLM Usage:
+Narrative: Generates story text and reacts to player choices.
+Combat: Simulates NPC actions and resolves combat mechanics.
+Downtime: Creates events and role-playing prompts.
+
+
+
+
+5. Data Utilization
+
+Game Master Cheat Sheet (JSON): Quick reference for rules, used by the LLM for decision-making.
+Guidelines (JSON): Based on the official WFRP 4e ruleset, ensures game mechanics are consistent.
+Reference Material (JSON): Includes bestiary, talents, skills, careers, etc., for character creation, NPC generation, and gameplay.
+Lore (JSON): Extracted from a website, provides the game world’s setting and context.
+SOPs: Originally for Silly Tavern, these will be adapted into LLM prompts or new SOPs tailored for this web app, guiding AI behavior in narrative, combat, and downtime.
+
+
+6. User Interface
+
+Game World Visualization: Displays maps, locations, or descriptive text based on LLM-generated scenes.
+Character Sheets: Interactive digital sheets showing stats, skills, talents, inventory, and status.
+Chat Interface: Primary interaction with the LLM, delivering story updates, combat results, and player choice options.
+Combat Interface: Visual layout of combat, including character positions, health bars, and action menus.
+Downtime Interface: Menu or prompt system for selecting and engaging in downtime activities.
+
+
+7. Additional Considerations
+
+User Authentication: Secure login system to save progress and manage accounts.
+Scalability: Backend designed to support multiple concurrent players and game sessions.
+Performance: Optimize LLM calls (e.g., caching frequent responses) to reduce latency.
+Content Moderation: Filters or prompts to ensure LLM output aligns with WFRP tone and avoids inappropriate content.
+Single-Player Focus: Initial development prioritizes a solo experience, with multiplayer as a potential future enhancement.
+
+
+8. Development Approach
+
+Vibe Coding: Use Cursor or Windsurf for rapid development, focusing on iterative prototyping.
+Phased Implementation:
+Core narrative mode with basic skill checks.
+Combat system with turn-based mechanics.
+Downtime phase and character progression.
+
+
+Testing: Validate mechanics against WFRP 4e rules and ensure LLM consistency.
+
+
+9. SOP Adaptation
+
+Existing SOPs: Review Silly Tavern SOPs and adapt relevant concepts (e.g., AI response guidelines) into LLM prompts or new SOPs.
+New SOPs: Create web-specific procedures for:
+Narrative consistency with WFRP lore.
+Combat decision-making (e.g., NPC tactics).
+Downtime event generation and progression triggers.
